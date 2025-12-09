@@ -5,7 +5,7 @@ import { ArrowUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { submitNeed } from "@/app/actions";
 import { useState, useEffect } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { auth } from "@/lib/firebase/client";
 
 export default function NeedPage() {
     const [content, setContent] = useState("");
@@ -18,13 +18,17 @@ export default function NeedPage() {
         const savedAnon = localStorage.getItem("need_draft_anon");
         if (savedContent) setContent(savedContent);
         if (savedAnon) setIsAnonymous(savedAnon === "true");
-        setIsLoading(false);
+
+        // Wait for auth to initialize
+        const unsubscribe = auth.onAuthStateChanged(() => {
+            setIsLoading(false);
+        });
+        return () => unsubscribe();
     }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
+        const user = auth.currentUser;
 
         if (!user) {
             // Save draft and redirect to login

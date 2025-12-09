@@ -1,55 +1,75 @@
-import { createClient } from "@/lib/supabase/server";
+import { db } from "@/lib/firebase/admin";
 import { FeedCard, FeedItem } from "@/components/feed-card";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { MessageCircle, LogOut } from "lucide-react";
+import { MessageCircle, LogOut, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/app/login/actions";
+import { cookies } from "next/headers";
+import { auth } from "@/lib/firebase/admin";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default async function FeedPage() {
-    const supabase = await createClient();
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get("session")?.value;
 
-    const { data: { user } } = await supabase.auth.getUser();
+    if (!sessionCookie) {
+        redirect("/login?next=/feed");
+    }
 
-    if (!user) {
+    let currentUser;
+    try {
+        currentUser = await auth.verifySessionCookie(sessionCookie, true);
+    } catch (error) {
         redirect("/login?next=/feed");
     }
 
     // Fetch Needs
-    const { data: needs } = await supabase
-        .from("needs")
-        .select("*, profiles(id, full_name, avatar_url)")
-        .eq("status", "open")
-        .order("created_at", { ascending: false });
+    const needsSnapshot = await db.collection("needs")
+        .where("status", "==", "open")
+        .orderBy("created_at", "desc")
+        .get();
+
+    const needs = needsSnapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
 
     // Fetch Gives
-    const { data: gives } = await supabase
-        .from("gives")
-        .select("*, profiles(id, full_name, avatar_url)")
-        .eq("status", "available")
-        .order("created_at", { ascending: false });
+    const givesSnapshot = await db.collection("gives")
+        .where("status", "==", "available")
+        .orderBy("created_at", "desc")
+        .get();
+
+    const gives = givesSnapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
 
     // Combine and Sort
     const feedItems: FeedItem[] = [
-        ...(needs?.map(n => ({
+        ...(needs.map((n: any) => ({
             id: n.id,
             type: 'need' as const,
             title: n.content,
-            user: n.profiles,
+            user: {
+                id: n.user_id,
+                full_name: n.user_profile?.full_name || 'Anonymous',
+                avatar_url: n.user_profile?.avatar_url
+            },
             created_at: n.created_at,
             urgency: n.urgency,
             status: n.status
-        })) || []),
-        ...(gives?.map(g => ({
+        }))),
+        ...(gives.map((g: any) => ({
             id: g.id,
             type: 'give' as const,
             title: g.title,
             description: g.description,
             imageUrl: g.image_url,
-            user: g.profiles,
+            user: {
+                id: g.user_id,
+                full_name: g.user_profile?.full_name || 'Anonymous',
+                avatar_url: g.user_profile?.avatar_url
+            },
             created_at: g.created_at,
-            status: g.status
-        })) || [])
+            status: g.status,
+            inventory: g.inventory // Firestore now returns objects, so this passes through correctly
+        })))
     ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     return (
@@ -64,19 +84,49 @@ export default async function FeedPage() {
                         <p className="text-muted-foreground">Discover needs and offers in your area.</p>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Link href="/conversations">
-                            <Button variant="ghost" size="icon" className="rounded-full">
-                                <MessageCircle className="h-6 w-6" />
-                            </Button>
-                        </Link>
-                        <form action={async () => {
-                            "use server";
-                            await signOut();
-                        }}>
-                            <Button type="submit" variant="ghost" size="icon" className="rounded-full text-muted-foreground hover:text-destructive">
-                                <LogOut className="h-5 w-5" />
-                            </Button>
-                        </form>
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Link href="/">
+                                        <Button variant="ghost" size="icon" className="rounded-full">
+                                            <Home className="h-6 w-6" />
+                                        </Button>
+                                    </Link>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Go Home</p>
+                                </TooltipContent>
+                            </Tooltip>
+
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Link href="/conversations">
+                                        <Button variant="ghost" size="icon" className="rounded-full">
+                                            <MessageCircle className="h-6 w-6" />
+                                        </Button>
+                                    </Link>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Messages</p>
+                                </TooltipContent>
+                            </Tooltip>
+
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <form action={async () => {
+                                        "use server";
+                                        await signOut();
+                                    }}>
+                                        <Button type="submit" variant="ghost" size="icon" className="rounded-full text-muted-foreground hover:text-destructive">
+                                            <LogOut className="h-5 w-5" />
+                                        </Button>
+                                    </form>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Sign Out</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
                     </div>
                 </header>
 
@@ -87,7 +137,7 @@ export default async function FeedPage() {
                         </div>
                     ) : (
                         feedItems.map(item => (
-                            <FeedCard key={item.id} item={item} currentUserId={user.id} />
+                            <FeedCard key={item.id} item={item} currentUserId={currentUser.uid} />
                         ))
                     )}
                 </div>

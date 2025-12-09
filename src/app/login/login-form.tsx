@@ -1,11 +1,28 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { login } from "@/app/login/actions";
+import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { auth } from "@/lib/firebase/client";
+import { createSession } from "@/app/login/actions";
+import { useState } from "react";
 
 export default function LoginForm({ next }: { next: string }) {
+    const [isLoading, setIsLoading] = useState(false);
+
+    const handleGoogleLogin = async () => {
+        setIsLoading(true);
+        try {
+            const provider = new GoogleAuthProvider();
+            const result = await signInWithPopup(auth, provider);
+            const idToken = await result.user.getIdToken();
+            await createSession(idToken);
+        } catch (error) {
+            console.error("Login failed", error);
+            setIsLoading(false);
+        }
+    };
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -17,27 +34,15 @@ export default function LoginForm({ next }: { next: string }) {
                 <p className="text-muted-foreground">Sign in to join the flow.</p>
             </div>
 
-            <form className="space-y-4">
-                <input type="hidden" name="next" value={next} />
-                <div className="space-y-2">
-                    <div className="relative">
-                        <Mail className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
-                        <input
-                            name="email"
-                            type="email"
-                            placeholder="hello@example.com"
-                            required
-                            className="w-full bg-background/50 border border-border rounded-xl px-10 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                        />
-                    </div>
-                </div>
+            <div className="space-y-4">
                 <Button
-                    formAction={login}
-                    className="w-full h-12 rounded-xl text-lg bg-foreground text-background hover:bg-foreground/90"
+                    onClick={handleGoogleLogin}
+                    disabled={isLoading}
+                    className="w-full h-12 rounded-xl text-lg bg-white text-black hover:bg-gray-100 border border-gray-200"
                 >
-                    Send Magic Link
+                    {isLoading ? "Signing in..." : "Sign in with Google"}
                 </Button>
-            </form>
+            </div>
         </motion.div>
     );
 }

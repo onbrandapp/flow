@@ -1,33 +1,38 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
+import { cookies } from 'next/headers'
+import { auth } from '@/lib/firebase/admin'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
 
-export async function login(formData: FormData) {
-    const supabase = await createClient()
+export async function createSession(idToken: string) {
+    // 5 days expiration
+    const expiresIn = 60 * 60 * 24 * 5 * 1000
 
-    const email = formData.get('email') as string
-    const next = formData.get('next') as string || '/'
+    try {
+        if (!auth) {
+            throw new Error('Firebase Admin not initialized')
+        }
 
-    const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-            shouldCreateUser: true,
-            emailRedirectTo: `${process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://spatial-solstice.vercel.app'}/auth/callback?next=${next}`,
-        },
-    })
+        const sessionCookie = await auth.createSessionCookie(idToken, { expiresIn })
 
-    if (error) {
-        redirect('/error')
+        const cookieStore = await cookies()
+        cookieStore.set('session', sessionCookie, {
+            maxAge: expiresIn,
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            path: '/',
+            sameSite: 'lax',
+        })
+    } catch (error) {
+        console.error('Failed to create session cookie', error)
+        throw new Error('Authentication failed')
     }
 
-    revalidatePath('/', 'layout')
-    redirect('/login/check-email')
+    redirect('/feed')
 }
 
 export async function signOut() {
-    const supabase = await createClient()
-    await supabase.auth.signOut()
-    redirect('/')
+    const cookieStore = await cookies()
+    cookieStore.delete('session')
+    redirect('/login')
 }

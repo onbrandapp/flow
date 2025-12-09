@@ -1,36 +1,52 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { db, auth } from '@/lib/firebase/admin'
 import { redirect } from 'next/navigation'
+import { revalidatePath } from 'next/cache'
+import { cookies } from 'next/headers'
 
 export async function submitNeed(formData: FormData) {
-    const content = formData.get('content') as string
-    const supabase = await createClient()
+    const cookieStore = await cookies()
+    const sessionCookie = cookieStore.get('session')?.value
 
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-        // For MVP, we might want to allow anonymous posting or force login.
-        // Plan said "Profile creation", so let's assume we need auth.
-        // But for "Universal Input" friction reduction, maybe we redirect to login *after* typing?
-        // Let's keep it simple: if not logged in, redirect to login.
-        return redirect('/login')
+    if (!sessionCookie) {
+        redirect('/login')
     }
 
+    let decodedClaims;
+    try {
+        decodedClaims = await auth.verifySessionCookie(sessionCookie, true);
+    } catch (error) {
+        redirect('/login')
+    }
+
+    const content = formData.get('content') as string
+    const urgency = formData.get('urgency') as string
     const isAnonymous = formData.get('is_anonymous') === 'on'
 
-    const { error } = await supabase.from('needs').insert({
-        content,
-        user_id: user.id,
-        status: 'open',
-        urgency: 'normal', // Default for now, AI can update this later
-        is_anonymous: isAnonymous,
-    })
+    if (!content) {
+        return
+    }
 
-    if (error) {
+    try {
+        await db.collection('needs').add({
+            content,
+            urgency: urgency || 'normal',
+            is_anonymous: isAnonymous,
+            user_id: decodedClaims.uid,
+            status: 'open',
+            created_at: new Date().toISOString(),
+            user_profile: {
+                full_name: decodedClaims.name || 'Anonymous',
+                avatar_url: decodedClaims.picture || '',
+                id: decodedClaims.uid
+            }
+        })
+    } catch (error) {
         console.error('Error submitting need:', error)
         throw new Error('Failed to submit need')
     }
 
+    revalidatePath('/feed')
     redirect('/need/success')
 }

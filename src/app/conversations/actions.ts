@@ -1,50 +1,60 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { db, auth } from '@/lib/firebase/admin'
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 
-export async function startConversation(itemId: string, itemType: 'need' | 'give', ownerId: string) {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+export async function startConversation(itemId: string, ownerId: string, itemType: 'need' | 'give') {
+    const cookieStore = await cookies()
+    const sessionCookie = cookieStore.get('session')?.value
 
-    if (!user) {
+    if (!sessionCookie) {
         redirect('/login')
     }
 
-    if (user.id === ownerId) {
-        // Can't start conversation with yourself
+    let decodedClaims;
+    try {
+        decodedClaims = await auth.verifySessionCookie(sessionCookie, true);
+    } catch (error) {
+        redirect('/login')
+    }
+
+    const currentUserId = decodedClaims.uid
+
+    if (currentUserId === ownerId) {
+        // Cannot start conversation with self
         return
     }
 
-    // Check if conversation already exists
-    const { data: existingConv } = await supabase
-        .from('conversations')
-        .select('id')
-        .eq('item_id', itemId)
-        .or(`participant1_id.eq.${user.id},participant2_id.eq.${user.id}`)
-        .or(`participant1_id.eq.${ownerId},participant2_id.eq.${ownerId}`)
-        .single()
+    // Check for existing conversation
+    // Note: Firestore queries are limited. For MVP, we might query all conversations for user and filter in code, 
+    // or create a composite key ID like `minId_maxId_itemId` to enforce uniqueness easily.
+    // Let's use the composite key approach for simplicity and efficiency.
 
-    if (existingConv) {
-        redirect(`/conversations/${existingConv.id}`)
-    }
+    const participants = [currentUserId, ownerId].sort()
+    const conversationId = `${participants[0]}_${participants[1]}_${itemId}`
 
-    // Create new conversation
-    const { data: newConv, error } = await supabase
-        .from('conversations')
-        .insert({
+    const conversationRef = db.collection('conversations').doc(conversationId)
+    const conversationDoc = await conversationRef.get()
+
+    if (!conversationDoc.exists) {
+        // Create new conversation
+        // We need to fetch item details to store in the conversation for easy access
+        const itemCollection = itemType === 'need' ? 'needs' : 'gives'
+        const itemDoc = await db.collection(itemCollection).doc(itemId).get()
+        const itemData = itemDoc.data()
+
+        await conversationRef.set({
+            participants: [currentUserId, ownerId],
             item_id: itemId,
             item_type: itemType,
-            participant1_id: user.id,
-            participant2_id: ownerId
+            item_title: itemData?.content || itemData?.title || 'Unknown Item',
+            last_message: '',
+            last_message_at: new Date().toISOString(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
         })
-        .select()
-        .single()
-
-    if (error) {
-        console.error('Error creating conversation:', error)
-        throw new Error('Failed to create conversation')
     }
 
-    redirect(`/conversations/${newConv.id}`)
+    redirect(`/conversations/${conversationId}`)
 }

@@ -1,10 +1,13 @@
+"use client";
+
 import { motion } from "framer-motion";
 import { Heart, Gift, Clock, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { startConversation } from "@/app/conversations/actions";
-import { markItemComplete } from "@/app/feed/actions";
-import { CheckCircle } from "lucide-react";
+import { markItemComplete, toggleItemStatus, addInventoryItem } from "@/app/feed/actions";
+import { CheckCircle, Plus } from "lucide-react";
+import { useState } from "react";
 
 export interface FeedItem {
     id: string;
@@ -20,11 +23,14 @@ export interface FeedItem {
     created_at: string;
     urgency?: string; // For needs
     status: string;
+    inventory?: { name: string, status: 'available' | 'taken' }[]; // For gives (AI extracted)
 }
 
 export function FeedCard({ item, currentUserId }: { item: FeedItem; currentUserId: string }) {
     const isNeed = item.type === 'need';
     const isOwner = item.user.id === currentUserId;
+    const [newItemName, setNewItemName] = useState("");
+    const [isAddingItem, setIsAddingItem] = useState(false);
 
     return (
         <div className="group relative overflow-hidden rounded-3xl bg-card/50 backdrop-blur-md border border-white/10 p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
@@ -70,11 +76,83 @@ export function FeedCard({ item, currentUserId }: { item: FeedItem; currentUserI
                         </p>
                     )}
 
+                    {/* AI Inventory for Gives */}
+
+                    {/* AI Inventory for Gives */}
+                    {!isNeed && item.inventory && (
+                        <div className="mt-3 space-y-2">
+                            <div className="flex flex-wrap gap-2">
+                                {item.inventory.map((invItem, i) => (
+                                    isOwner ? (
+                                        <form key={i} action={async () => {
+                                            await toggleItemStatus(item.id, i);
+                                        }}>
+                                            <button
+                                                type="submit"
+                                                className={cn(
+                                                    "px-2 py-1 text-[10px] uppercase tracking-wider font-medium rounded-md border transition-all cursor-pointer hover:opacity-80",
+                                                    invItem.status === 'taken'
+                                                        ? "bg-muted text-muted-foreground border-transparent line-through decoration-muted-foreground/50"
+                                                        : "bg-violet-500/10 text-violet-300 border-violet-500/20 hover:bg-violet-500/20"
+                                                )}
+                                                title="Click to toggle status"
+                                            >
+                                                {invItem.name}
+                                            </button>
+                                        </form>
+                                    ) : (
+                                        <span key={i} className={cn(
+                                            "px-2 py-1 text-[10px] uppercase tracking-wider font-medium rounded-md border transition-colors",
+                                            invItem.status === 'taken'
+                                                ? "bg-muted text-muted-foreground border-transparent line-through decoration-muted-foreground/50"
+                                                : "bg-violet-500/10 text-violet-300 border-violet-500/20"
+                                        )}>
+                                            {invItem.name}
+                                        </span>
+                                    )
+                                ))}
+
+                                {isOwner && (
+                                    <div className="flex items-center">
+                                        {isAddingItem ? (
+                                            <form action={async (formData) => {
+                                                const name = formData.get('name') as string;
+                                                if (name) {
+                                                    await addInventoryItem(item.id, name);
+                                                    setIsAddingItem(false);
+                                                    setNewItemName("");
+                                                }
+                                            }} className="flex items-center gap-1">
+                                                <input
+                                                    name="name"
+                                                    type="text"
+                                                    value={newItemName}
+                                                    onChange={(e) => setNewItemName(e.target.value)}
+                                                    placeholder="Add item..."
+                                                    className="h-6 w-24 rounded-md border border-white/10 bg-black/20 px-2 text-[10px] text-foreground focus:outline-none focus:border-violet-500/50"
+                                                    autoFocus
+                                                    onBlur={() => !newItemName && setIsAddingItem(false)}
+                                                />
+                                                <button type="submit" className="hidden" />
+                                            </form>
+                                        ) : (
+                                            <button
+                                                onClick={() => setIsAddingItem(true)}
+                                                className="px-2 py-1 flex items-center gap-1 text-[10px] uppercase tracking-wider font-medium rounded-md border border-dashed border-white/20 text-muted-foreground hover:text-foreground hover:border-white/40 transition-colors"
+                                            >
+                                                <Plus className="h-3 w-3" /> Add
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Actions */}
                     <div className="pt-2 flex items-center gap-3">
                         {isOwner ? (
                             <form action={async () => {
-                                "use server";
                                 await markItemComplete(item.id, item.type);
                             }} className="flex-1">
                                 <Button
@@ -88,8 +166,7 @@ export function FeedCard({ item, currentUserId }: { item: FeedItem; currentUserI
                             </form>
                         ) : (
                             <form action={async () => {
-                                "use server";
-                                await startConversation(item.id, item.type, item.user.id);
+                                await startConversation(item.id, item.user.id, item.type);
                             }} className="flex-1">
                                 <Button
                                     type="submit"
