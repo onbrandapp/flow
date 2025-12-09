@@ -47,3 +47,4 @@ A boundless ecosystem where resources flow freely from those who have to those w
 *   `/src/app/give`: The "Give" flow (Snap & List).
 *   `/src/app/login`: Authentication pages.
 *   `/src/components/ui`: Reusable UI components.
+# flow
