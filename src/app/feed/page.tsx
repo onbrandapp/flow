@@ -79,7 +79,7 @@ export default async function FeedPage() {
             <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-violet-500/10 to-transparent pointer-events-none" />
 
             <div className="max-w-2xl mx-auto p-6 relative z-10">
-                <header className="mb-8 pt-8 flex justify-between items-end">
+                <header className="mb-8 pt-8 flex justify-between items-start">
                     <div>
                         <h1 className="text-3xl font-serif font-bold">Community Feed</h1>
                         <p className="text-muted-foreground">Discover needs and offers in your area.</p>

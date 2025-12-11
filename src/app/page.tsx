@@ -19,7 +19,7 @@ export default function Home() {
         className="z-10 text-center max-w-3xl space-y-8"
       >
         <div className="space-y-4">
-          <h1 className="text-5xl md:text-7xl font-serif font-bold tracking-tight text-foreground">
+          <h1 className="text-4xl md:text-7xl font-serif font-bold tracking-tight text-foreground">
             Radical <span className="text-gradient">Generosity.</span>
           </h1>
           <p className="text-xl md:text-2xl text-muted-foreground font-light leading-relaxed">
@@ -55,21 +55,21 @@ export default function Home() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5, duration: 1 }}
-          className="pt-16 flex justify-center gap-8 text-muted-foreground/50"
+          className="pt-12 md:pt-16 flex flex-col md:flex-row justify-center items-center gap-6 md:gap-8 text-muted-foreground/50"
         >
-          <div className="flex flex-col items-center gap-2">
-            <span className="text-3xl font-bold">100%</span>
-            <span className="text-sm uppercase tracking-wider">Free</span>
+          <div className="flex flex-col items-center gap-1 md:gap-2">
+            <span className="text-2xl md:text-3xl font-bold">100%</span>
+            <span className="text-xs md:text-sm uppercase tracking-wider">Free</span>
           </div>
-          <div className="w-px bg-border/50 h-12" />
-          <div className="flex flex-col items-center gap-2">
-            <span className="text-3xl font-bold">Local</span>
-            <span className="text-sm uppercase tracking-wider">Community</span>
+          <div className="hidden md:block w-px bg-border/50 h-12" />
+          <div className="flex flex-col items-center gap-1 md:gap-2">
+            <span className="text-2xl md:text-3xl font-bold">Local</span>
+            <span className="text-xs md:text-sm uppercase tracking-wider">Community</span>
           </div>
-          <div className="w-px bg-border/50 h-12" />
-          <div className="flex flex-col items-center gap-2">
-            <span className="text-3xl font-bold">Direct</span>
-            <span className="text-sm uppercase tracking-wider">Impact</span>
+          <div className="hidden md:block w-px bg-border/50 h-12" />
+          <div className="flex flex-col items-center gap-1 md:gap-2">
+            <span className="text-2xl md:text-3xl font-bold">Direct</span>
+            <span className="text-xs md:text-sm uppercase tracking-wider">Impact</span>
           </div>
         </motion.div>
       </motion.div>
