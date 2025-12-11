@@ -57,8 +57,10 @@ export function FeedCard({ item, currentUserId }: { item: FeedItem; currentUserI
                         <h3 className="text-lg font-serif font-semibold leading-tight">
                             {item.title}
                         </h3>
-                        <p className="text-sm text-muted-foreground mt-1">
-                            by {item.user.full_name || "Anonymous"} • <span className="opacity-70">{new Date(item.created_at).toLocaleDateString()}</span>
+                        <p className="text-sm text-muted-foreground mt-1 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-0">
+                            <span>by {item.user.full_name || "Anonymous"}</span>
+                            <span className="hidden sm:inline mx-1">•</span>
+                            <span className="opacity-70 text-xs sm:text-sm">{new Date(item.created_at).toLocaleDateString()}</span>
                         </p>
                     </div>
 

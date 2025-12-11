@@ -8,6 +8,7 @@ import { signOut } from "@/app/login/actions";
 import { cookies } from "next/headers";
 import { auth } from "@/lib/firebase/admin";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { MobileNav } from "@/components/mobile-nav";
 
 export default async function FeedPage() {
     const cookieStore = await cookies();
@@ -84,49 +85,55 @@ export default async function FeedPage() {
                         <p className="text-muted-foreground">Discover needs and offers in your area.</p>
                     </div>
                     <div className="flex items-center gap-2">
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Link href="/">
-                                        <Button variant="ghost" size="icon" className="rounded-full">
-                                            <Home className="h-6 w-6" />
-                                        </Button>
-                                    </Link>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>Go Home</p>
-                                </TooltipContent>
-                            </Tooltip>
+                        {/* Desktop Nav */}
+                        <div className="hidden md:flex items-center gap-2">
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Link href="/">
+                                            <Button variant="ghost" size="icon" className="rounded-full">
+                                                <Home className="h-6 w-6" />
+                                            </Button>
+                                        </Link>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Go Home</p>
+                                    </TooltipContent>
+                                </Tooltip>
 
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Link href="/conversations">
-                                        <Button variant="ghost" size="icon" className="rounded-full">
-                                            <MessageCircle className="h-6 w-6" />
-                                        </Button>
-                                    </Link>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>Messages</p>
-                                </TooltipContent>
-                            </Tooltip>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Link href="/conversations">
+                                            <Button variant="ghost" size="icon" className="rounded-full">
+                                                <MessageCircle className="h-6 w-6" />
+                                            </Button>
+                                        </Link>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Messages</p>
+                                    </TooltipContent>
+                                </Tooltip>
 
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <form action={async () => {
-                                        "use server";
-                                        await signOut();
-                                    }}>
-                                        <Button type="submit" variant="ghost" size="icon" className="rounded-full text-muted-foreground hover:text-destructive">
-                                            <LogOut className="h-5 w-5" />
-                                        </Button>
-                                    </form>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>Sign Out</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <form action={async () => {
+                                            "use server";
+                                            await signOut();
+                                        }}>
+                                            <Button type="submit" variant="ghost" size="icon" className="rounded-full text-muted-foreground hover:text-destructive">
+                                                <LogOut className="h-5 w-5" />
+                                            </Button>
+                                        </form>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Sign Out</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        </div>
+
+                        {/* Mobile Nav */}
+                        <MobileNav />
                     </div>
                 </header>
 
