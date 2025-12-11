@@ -5,6 +5,7 @@ import { Camera, Upload, ArrowUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { submitGive } from "@/app/give/actions";
 import { useState, useRef } from "react";
+import { useFormStatus } from "react-dom";
 
 export default function GivePage() {
     const [preview, setPreview] = useState<string | null>(null);
@@ -82,15 +83,33 @@ export default function GivePage() {
                         />
                     </div>
 
-                    <Button
-                        type="submit"
-                        className="w-full h-12 rounded-xl text-lg bg-blue-600 hover:bg-blue-700 text-white shadow-lg"
-                    >
-                        <Upload className="mr-2 h-5 w-5" />
-                        List Item
-                    </Button>
+                    <SubmitButton />
                 </form>
             </motion.div>
         </main>
+    );
+}
+
+function SubmitButton() {
+    const { pending } = useFormStatus();
+
+    return (
+        <Button
+            type="submit"
+            disabled={pending}
+            className="w-full h-12 rounded-xl text-lg bg-blue-600 hover:bg-blue-700 text-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+            {pending ? (
+                <>
+                    <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                    Listing...
+                </>
+            ) : (
+                <>
+                    <Upload className="mr-2 h-5 w-5" />
+                    List Item
+                </>
+            )}
+        </Button>
     );
 }
