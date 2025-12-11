@@ -34,7 +34,7 @@ export default function GivePage() {
                         What can you give?
                     </h1>
                     <p className="text-muted-foreground">
-                        Snap a photo. We'll handle the rest.
+                        Snap a photo or upload. We'll handle the rest.
                     </p>
                 </div>
 
@@ -51,7 +51,6 @@ export default function GivePage() {
                             ref={fileInputRef}
                             onChange={handleFileChange}
                             accept="image/*"
-                            capture="environment"
                             className="hidden"
                             required
                         />
@@ -63,7 +62,7 @@ export default function GivePage() {
                                 <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center mx-auto">
                                     <Camera className="h-6 w-6 text-blue-500" />
                                 </div>
-                                <p className="text-sm text-muted-foreground font-medium">Tap to snap a photo</p>
+                                <p className="text-sm text-muted-foreground font-medium">Snap a photo or upload</p>
                             </div>
                         )}
                     </div>
