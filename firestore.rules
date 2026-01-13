@@ -1,0 +1,30 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Deny all by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Needs and Gives: Authenticated users can read for the feed
+    match /needs/{needId} {
+      allow read: if request.auth != null;
+    }
+    
+    match /gives/{giveId} {
+      allow read: if request.auth != null;
+    }
+
+    // Conversations: Only participants can read
+    match /conversations/{conversationId} {
+      allow get: if request.auth != null && request.auth.uid in resource.data.participants;
+      
+      // Messages sub-collection: Inherit participant check from parent conversation
+      match /messages/{messageId} {
+        allow read: if request.auth != null && 
+          request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants;
+      }
+    }
+  }
+}

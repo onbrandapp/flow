@@ -1,0 +1,17 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Default: deny everything
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+
+    // Allow authenticated users to read images for the feed
+    match /{userId}/{allPaths=**} {
+      allow read: if request.auth != null;
+      // All writes are performed via Admin SDK, so we deny client-side writes for now
+      allow write: if false;
+    }
+  }
+}
